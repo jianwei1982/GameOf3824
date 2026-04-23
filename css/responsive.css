@@ -1,0 +1,258 @@
+/* ===== Responsive Styles ===== */
+
+/* Tablet */
+@media (max-width: 768px) {
+    :root {
+        --font-size-3xl: 36px;
+        --font-size-2xl: 28px;
+    }
+
+    #app {
+        padding: var(--spacing-sm);
+    }
+
+    .game-title {
+        font-size: var(--font-size-2xl);
+    }
+
+    .subtitle {
+        font-size: var(--font-size-base);
+    }
+
+    .btn {
+        min-width: 120px;
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-base);
+    }
+
+    .game-header {
+        padding: var(--spacing-sm);
+    }
+
+    .score-display, .stars-display, .progress-display {
+        flex: 1 1 30%;
+        justify-content: center;
+    }
+
+    .number-card {
+        width: 65px;
+        height: 85px;
+        font-size: var(--font-size-xl);
+    }
+
+    .operator-btn {
+        width: 50px;
+        height: 50px;
+        font-size: var(--font-size-xl);
+    }
+
+    .action-area {
+        gap: var(--spacing-sm);
+    }
+
+    .btn-action {
+        min-width: 65px;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: var(--font-size-sm);
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    :root {
+        --font-size-3xl: 28px;
+        --font-size-2xl: 24px;
+        --font-size-xl: 18px;
+        --spacing-md: 12px;
+        --spacing-lg: 16px;
+    }
+
+    .game-title {
+        font-size: var(--font-size-xl);
+    }
+
+    .subtitle {
+        font-size: var(--font-size-sm);
+    }
+
+    .mode-select {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .btn {
+        width: 100%;
+        min-width: unset;
+    }
+
+    .game-header {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    .score-display, .stars-display, .progress-display {
+        width: 100%;
+        justify-content: center;
+        padding: var(--spacing-xs);
+    }
+
+    .number-card {
+        width: 55px;
+        height: 70px;
+        font-size: var(--font-size-lg);
+    }
+
+    .cards-container {
+        gap: var(--spacing-sm);
+    }
+
+    .operator-btn {
+        width: 45px;
+        height: 45px;
+        font-size: var(--font-size-lg);
+    }
+
+    .formula-preview {
+        font-size: var(--font-size-base);
+        min-height: 45px;
+    }
+
+    .action-area {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--spacing-xs);
+    }
+
+    .btn-action {
+        width: 100%;
+    }
+
+    .btn-hint {
+        grid-column: span 3;
+    }
+
+    .feedback {
+        width: 90%;
+        padding: var(--spacing-md);
+        font-size: var(--font-size-base);
+    }
+
+    .timer {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .timer-value {
+        font-size: var(--font-size-xl);
+    }
+
+    .end-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .end-buttons .btn {
+        width: 100%;
+    }
+}
+
+/* Large Desktop */
+@media (min-width: 1200px) {
+    #app {
+        max-width: 1000px;
+    }
+
+    .number-card {
+        width: 100px;
+        height: 130px;
+        font-size: var(--font-size-3xl);
+    }
+
+    .operator-btn {
+        width: 80px;
+        height: 80px;
+        font-size: var(--font-size-3xl);
+    }
+
+    .action-area {
+        gap: var(--spacing-lg);
+    }
+
+    .btn-action {
+        min-width: 100px;
+        padding: var(--spacing-md) var(--spacing-lg);
+    }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .number-card {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .operator-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .btn-action {
+        min-height: 44px;
+    }
+
+    .number-card:hover,
+    .operator-btn:hover {
+        transform: none;
+    }
+
+    .number-card:active {
+        transform: scale(0.95);
+    }
+
+    .operator-btn:active {
+        transform: scale(0.95);
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .number-card {
+        border-width: 4px;
+    }
+
+    .btn {
+        border: 2px solid currentColor;
+    }
+
+    .formula-preview {
+        border-style: solid;
+    }
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background: white;
+    }
+
+    .btn,
+    .action-area,
+    .operator-area {
+        display: none;
+    }
+
+    .screen {
+        display: block !important;
+        page-break-after: always;
+    }
+}

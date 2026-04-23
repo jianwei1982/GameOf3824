@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>24点计算游戏 - Meg's Game</title>
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 开始界面 -->
+        <div id="start-screen" class="screen active">
+            <h1 class="game-title">24点计算游戏</h1>
+            <p class="subtitle">运用加、减、乘、除算出24点吧！</p>
+            <div class="mode-select">
+                <button id="btn-classic" class="btn btn-primary" onclick="startClassic()">经典模式</button>
+                <button id="btn-speed" class="btn btn-secondary" onclick="startSpeed()">竞速模式</button>
+            </div>
+        </div>
+
+        <!-- 游戏界面 -->
+        <div id="game-screen" class="screen">
+            <header class="game-header">
+                <div class="score-display">
+                    <span class="label">得分:</span>
+                    <span id="score" class="value">0</span>
+                </div>
+                <div class="stars-display">
+                    <span class="label">星级:</span>
+                    <span id="stars" class="value">0</span>
+                </div>
+                <div class="progress-display">
+                    <span class="label">进度:</span>
+                    <span id="progress" class="value">0/10</span>
+                </div>
+            </header>
+
+            <div id="timer-display" class="timer hidden">
+                <span class="timer-icon">⏱️</span>
+                <span id="time-remaining" class="timer-value">60</span>
+            </div>
+
+            <section class="card-area">
+                <div id="number-cards" class="cards-container"></div>
+            </section>
+
+            <section class="formula-area">
+                <div id="formula-preview" class="formula-preview">
+                    <span class="empty">点击数字和运算符卡片开始</span>
+                </div>
+            </section>
+
+            <section class="operator-area">
+                <div id="operator-cards" class="operators-container">
+                    <button class="operator-btn" data-operator="+" onclick="addOperator('+')">+</button>
+                    <button class="operator-btn" data-operator="-" onclick="addOperator('-')">−</button>
+                    <button class="operator-btn" data-operator="×" onclick="addOperator('×')">×</button>
+                    <button class="operator-btn" data-operator="÷" onclick="addOperator('÷')">÷</button>
+                    <button class="operator-btn parentheses" data-operator="(" onclick="addOperator('(')">(</button>
+                    <button class="operator-btn parentheses" data-operator=")" onclick="addOperator(')')">)</button>
+                </div>
+            </section>
+
+            <section class="action-area">
+                <button class="btn btn-action btn-confirm" onclick="confirmAnswer()">确认</button>
+                <button class="btn btn-action btn-clear" onclick="clearFormula()">清空</button>
+                <button class="btn btn-action btn-change" onclick="changeCards()">换牌</button>
+                <button class="btn btn-action btn-no-solution" onclick="declareNoSolution()">无解</button>
+                <button class="btn btn-action btn-hint" onclick="useHint()">提示 (<span id="hint-count">3</span>)</button>
+            </section>
+
+            <div id="feedback" class="feedback hidden"></div>
+        </div>
+
+        <!-- 游戏结束界面 -->
+        <div id="end-screen" class="screen">
+            <h2 class="end-title">游戏结束！</h2>
+            <div class="final-score">
+                <p>最终得分: <span id="final-score">0</span></p>
+                <p>获得星级: <span id="final-stars">0</span> ⭐</p>
+            </div>
+            <div class="end-buttons">
+                <button class="btn btn-primary" onclick="restartGame()">再来一局</button>
+                <button class="btn btn-secondary" onclick="goHome()">返回首页</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            mode: 'classic',
+            score: 0,
+            stars: 0,
+            hintsRemaining: 3,
+            currentSetIndex: 0,
+            totalSets: 10,
+            timeRemaining: 60,
+            isGameOver: false,
+            startTime: null,
+            currentCards: [],
+            currentFormula: []
+        };
+
+        let timerInterval = null;
+
+        // Start Classic Mode
+        function startClassic() {
+            startGame('classic');
+        }
+
+        // Start Speed Mode
+        function startSpeed() {
+            startGame('speed');
+        }
+
+        // Start Game
+        function startGame(mode) {
+            console.log('Starting game:', mode);
+            gameState.mode = mode;
+            gameState.score = 0;
+            gameState.stars = 0;
+            gameState.hintsRemaining = 3;
+            gameState.currentSetIndex = 0;
+            gameState.timeRemaining = 60;
+            gameState.isGameOver = false;
+            gameState.currentFormula = [];
+
+            // Switch screens
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+
+            // Timer for speed mode
+            if (mode === 'speed') {
+                document.getElementById('timer-display').classList.remove('hidden');
+                timerInterval = setInterval(() => {
+                    gameState.timeRemaining--;
+                    document.getElementById('time-remaining').textContent = gameState.timeRemaining;
+                    if (gameState.timeRemaining <= 0) {
+                        clearInterval(timerInterval);
+                        endGame();
+                    }
+                }, 1000);
+            } else {
+                document.getElementById('timer-display').classList.add('hidden');
+            }
+
+            // Update UI
+            document.getElementById('hint-count').textContent = '3';
+            gameState.currentCards = generateCards();
+            gameState.startTime = Date.now();
+            renderCards();
+            updateFormulaDisplay();
+            document.getElementById('progress').textContent = '0/10';
+            document.getElementById('score').textContent = '0';
+        }
+
+        // Generate random cards (1-10 for easier difficulty)
+        function generateCards() {
+            const cards = [];
+            for (let i = 0; i < 4; i++) {
+                cards.push(Math.floor(Math.random() * 10) + 1);
+            }
+            return cards;
+        }
+
+        // Render cards
+        function renderCards() {
+            const container = document.getElementById('number-cards');
+            container.innerHTML = '';
+            gameState.currentCards.forEach((value, index) => {
+                const card = document.createElement('div');
+                card.className = 'number-card card-entry';
+                card.textContent = value;
+                card.style.animationDelay = (index * 0.1) + 's';
+                card.onclick = function() { selectCard(index); };
+                container.appendChild(card);
+            });
+        }
+
+        // Select card
+        function selectCard(index) {
+            const cards = document.querySelectorAll('.number-card');
+            cards[index].classList.toggle('selected');
+            gameState.currentFormula.push({ type: 'number', value: gameState.currentCards[index] });
+            updateFormulaDisplay();
+        }
+
+        // Add operator
+        function addOperator(op) {
+            gameState.currentFormula.push({ type: 'operator', value: op });
+            updateFormulaDisplay();
+        }
+
+        // Update formula display
+        function updateFormulaDisplay() {
+            const preview = document.getElementById('formula-preview');
+            if (gameState.currentFormula.length === 0) {
+                preview.innerHTML = '<span class="empty">点击数字和运算符卡片开始</span>';
+                return;
+            }
+            let html = '';
+            gameState.currentFormula.forEach(item => {
+                if (item.type === 'number') {
+                    html += '<span class="number">' + item.value + '</span> ';
+                } else {
+                    html += '<span class="operator">' + item.value + '</span> ';
+                }
+            });
+            preview.innerHTML = html;
+        }
+
+        // Confirm answer
+        function confirmAnswer() {
+            if (gameState.currentFormula.length === 0) return;
+
+            let expr = '';
+            gameState.currentFormula.forEach(item => { expr += item.value; });
+            expr = expr.replace(/×/g, '*').replace(/÷/g, '/');
+
+            try {
+                const result = eval(expr);
+                if (Math.abs(result - 24) < 0.001) {
+                    const timeSpent = gameState.startTime ? Math.floor((Date.now() - gameState.startTime) / 1000) : 0;
+                    const points = 100 + Math.max(0, Math.round(50 * (1 - timeSpent / 30)));
+                    gameState.score += points;
+                    showFeedback('success', '太棒了！ +' + points + '分');
+                    document.getElementById('score').textContent = gameState.score;
+                    setTimeout(nextCardSet, 1500);
+                } else {
+                    const solution = getSolution(gameState.currentCards);
+                    showFeedback('error', '答案: ' + solution, true);
+                    setTimeout(nextCardSet, 2000);
+                }
+            } catch (e) {
+                showFeedback('error', '算式格式不正确');
+            }
+        }
+
+        // Clear formula
+        function clearFormula() {
+            gameState.currentFormula = [];
+            renderCards();
+            updateFormulaDisplay();
+        }
+
+        // Change cards
+        function changeCards() {
+            // Skip this question, no points, move to next
+            gameState.currentSetIndex++;
+            if (gameState.currentSetIndex >= gameState.totalSets) {
+                endGame();
+                return;
+            }
+            gameState.currentCards = generateCards();
+            gameState.currentFormula = [];
+            gameState.startTime = Date.now();
+            renderCards();
+            updateFormulaDisplay();
+            // Update progress
+            document.getElementById('progress').textContent = gameState.currentSetIndex + '/' + gameState.totalSets;
+        }
+
+        // Declare no solution
+        function declareNoSolution() {
+            const result = hasSolution(gameState.currentCards);
+            if (!result.solvable) {
+                // Correct! No solution exists
+                gameState.score += 50;
+                showFeedback('success', '正确！确实无解！+50分');
+                document.getElementById('score').textContent = gameState.score;
+                setTimeout(nextCardSet, 1500);
+            } else {
+                // Wrong! There is a solution - show answer, then move to next when closed
+                showFeedback('error', '其实有解哦！答案是: ' + result.solution, true, function() {
+                    nextCardSet();
+                });
+            }
+        }
+
+        // Use hint
+        function useHint() {
+            if (gameState.hintsRemaining <= 0) {
+                showFeedback('info', '提示已用完');
+                return;
+            }
+            gameState.hintsRemaining--;
+            document.getElementById('hint-count').textContent = gameState.hintsRemaining;
+            const hint = generateHint(gameState.currentCards, getSolution(gameState.currentCards));
+            showFeedback('info', hint);
+        }
+
+        // Show feedback
+        function showFeedback(type, message, showSolution, onClose) {
+            const feedback = document.getElementById('feedback');
+            feedback.innerHTML = '<div class="feedback-content">' + message + '</div>';
+            feedback.className = 'feedback ' + type;
+            feedback.classList.remove('hidden');
+            const duration = showSolution ? 3000 : 2000;
+            setTimeout(() => {
+                feedback.classList.add('hidden');
+                if (onClose) onClose();
+            }, duration);
+        }
+
+        // Next card set
+        function nextCardSet() {
+            gameState.currentSetIndex++;
+            if (gameState.currentSetIndex >= gameState.totalSets) {
+                endGame();
+                return;
+            }
+            gameState.currentCards = generateCards();
+            gameState.currentFormula = [];
+            gameState.startTime = Date.now();
+            renderCards();
+            updateFormulaDisplay();
+            document.getElementById('progress').textContent = gameState.currentSetIndex + '/' + gameState.totalSets;
+            document.getElementById('score').textContent = gameState.score;
+        }
+
+        // End game
+        function endGame() {
+            gameState.isGameOver = true;
+            if (timerInterval) clearInterval(timerInterval);
+
+            let stars = 1;
+            const accuracy = gameState.score / (gameState.totalSets * 150);
+            if (accuracy >= 0.6) stars = 2;
+            if (accuracy >= 0.8) stars = 3;
+            gameState.stars = stars;
+
+            document.getElementById('game-screen').classList.remove('active');
+            document.getElementById('end-screen').classList.add('active');
+            document.getElementById('final-score').textContent = gameState.score;
+            document.getElementById('final-stars').textContent = stars;
+        }
+
+        // Restart game
+        function restartGame() {
+            document.getElementById('end-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+            startGame(gameState.mode);
+        }
+
+        // Go home
+        function goHome() {
+            document.getElementById('end-screen').classList.remove('active');
+            document.getElementById('start-screen').classList.add('active');
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        // Solver functions
+        function hasSolution(cardValues) {
+            if (!cardValues || cardValues.length !== 4) return { solvable: false, solution: null };
+
+            const TARGET = 24;
+            const TOLERANCE = 0.0001;
+
+            function permutations(arr) {
+                if (arr.length <= 1) return [arr];
+                const result = [];
+                for (let i = 0; i < arr.length; i++) {
+                    const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+                    const restPerms = permutations(rest);
+                    for (const perm of restPerms) result.push([arr[i], ...perm]);
+                }
+                return result;
+            }
+
+            const numberPerms = permutations(cardValues);
+            const ops = ['+', '-', '×', '÷'];
+
+            for (const nums of numberPerms) {
+                for (let i = 0; i < ops.length; i++) {
+                    for (let j = 0; j < ops.length; j++) {
+                        for (let k = 0; k < ops.length; k++) {
+                            const [a, b, c, d] = nums;
+                            const [op1, op2, op3] = [ops[i], ops[j], ops[k]];
+
+                            // All possible bracket combinations
+                            const exprs = [
+                                // No brackets
+                                `${a}${op1}${b}${op2}${c}${op3}${d}`,
+                                // One pair of brackets
+                                `(${a}${op1}${b})${op2}${c}${op3}${d}`,
+                                `${a}${op1}(${b}${op2}${c})${op3}${d}`,
+                                `${a}${op1}${b}${op2}(${c}${op3}${d})`,
+                                `${a}${op1}${b}${op2}${c}${op3}${d}`,
+                                // Two pairs of brackets
+                                `(${a}${op1}${b})${op2}(${c}${op3}${d})`,
+                                `(${a}${op1}(${b}${op2}${c}))${op3}${d}`,
+                                `${a}${op1}(${b}${op2}(${c}${op3}${d}))`,
+                                `${a}${op1}((${b}${op2}${c})${op3}${d})`,
+                                `(${a}${op1}${b})${op2}(${c}${op3}${d})`,
+                                `(${a}${op1}${b})${op2}${c}${op3}${d}`,
+                                `${a}${op1}(${b}${op2}${c})${op3}${d}`
+                            ];
+
+                            for (const expr of exprs) {
+                                try {
+                                    const safe = expr.replace(/×/g, '*').replace(/÷/g, '/');
+                                    if (safe.includes('/0')) continue;
+                                    const result = eval(safe);
+                                    if (Math.abs(result - TARGET) < TOLERANCE) {
+                                        return { solvable: true, solution: expr };
+                                    }
+                                } catch (e) { continue; }
+                            }
+                        }
+                    }
+                }
+            }
+            return { solvable: false, solution: null };
+        }
+
+        function getSolution(cardValues) {
+            return hasSolution(cardValues).solution;
+        }
+
+        function generateHint(cardValues, solution) {
+            if (!solution) return '这组牌可能无解，可以尝试宣布"无解"';
+            if (solution.includes('(')) return '提示：需要使用括号来改变运算顺序';
+            if (solution.includes('÷')) return '提示：试试用除法来调整数字';
+            if (solution.includes('×')) return '提示：尝试使用乘法';
+            return '提示：仔细想想数字的组合';
+        }
+
+        console.log('Game script loaded!');
+    </script>
+</body>
+</html>
